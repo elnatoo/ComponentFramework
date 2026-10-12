@@ -1,24 +1,36 @@
 import { IInputs, IOutputs } from "./generated/ManifestTypes";
 
-declare namespace ComponentFramework {
-    interface Dictionary {
-        [key: string]: any;
-    }
+// DEV NOTE: When working in Visual Studio Code, you may see errors like "Cannot find namespace 'ComponentFramework'" or "Cannot find name 'ComponentFramework'".
+// To resolve this, run Ctrl + Shift + P, select "TypeScript: Select TypeScript Version", and choose "Use Workspace Version" to ensure that the correct TypeScript version is used for the project.
 
-    interface Context<TInputs> {
-        [key: string]: any;
-        parameters: TInputs;
-    }
+// This was used to handle error pcf-1022, but it is not needed anymore since we are using the latest version of pcf-scripts.
 
-    interface StandardControl<TInputs, TOutputs> {
-        init(context: Context<TInputs>, notifyOutputChanged: () => void, state: Dictionary, container: HTMLDivElement): void;
-        updateView(context: Context<TInputs>): void;
-        getOutputs(): TOutputs;
-        destroy(): void;
-    }
-}
+// The Power Apps Component Framework (PCF) compiler uses modern ES Modules (export statements) to handle boundaries. 
+// It strictly prohibits you from writing namespace MyNamespace { ... } or module MyModule { ... } inside your custom control files.
+
+// declare namespace ComponentFramework {
+//     interface Dictionary {
+//         [key: string]: any;
+//     }
+
+//     interface Context<TInputs> {
+//         [key: string]: any;
+//         parameters: TInputs;
+//     }
+
+//     interface StandardControl<TInputs, TOutputs> {
+//         init(context: Context<TInputs>, notifyOutputChanged: () => void, state: Dictionary, container: HTMLDivElement): void;
+//         updateView(context: Context<TInputs>): void;
+//         getOutputs(): TOutputs;
+//         destroy(): void;
+//     }
+// }
 
 export class FirstControl implements ComponentFramework.StandardControl<IInputs, IOutputs> {
+    
+    private label: HTMLInputElement;
+    private _container: HTMLDivElement;
+    
     /**
      * Empty constructor.
      */
@@ -41,6 +53,14 @@ export class FirstControl implements ComponentFramework.StandardControl<IInputs,
         container: HTMLDivElement
     ): void {
         // Add control initialization code
+        this.label = document.createElement("input");
+        this.label.setAttribute("type", "label");
+        this.label.value = "My First PCF Control";
+        // This is an example of using the context object to access parameters defined in the manifest
+        // this.label.value = context.parameters.sampleProperty.raw || "";
+        this._container = document.createElement("div");
+        this._container.appendChild(this.label);
+        container.appendChild(this._container);
     }
 
 
