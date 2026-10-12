@@ -1,5 +1,23 @@
 import { IInputs, IOutputs } from "./generated/ManifestTypes";
 
+declare namespace ComponentFramework {
+    interface Dictionary {
+        [key: string]: any;
+    }
+
+    interface Context<TInputs> {
+        [key: string]: any;
+        parameters: TInputs;
+    }
+
+    interface StandardControl<TInputs, TOutputs> {
+        init(context: Context<TInputs>, notifyOutputChanged: () => void, state: Dictionary, container: HTMLDivElement): void;
+        updateView(context: Context<TInputs>): void;
+        getOutputs(): TOutputs;
+        destroy(): void;
+    }
+}
+
 export class FirstControl implements ComponentFramework.StandardControl<IInputs, IOutputs> {
     /**
      * Empty constructor.
