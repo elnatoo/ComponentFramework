@@ -111,7 +111,7 @@ export class CustomPCF implements ComponentFramework.StandardControl<IInputs, IO
         this.container.appendChild(this.actionButton);
 
         // Synchronize DOM with the current state values
-        this.renderUi();
+        this.renderUI();
     }
 
     /**
@@ -127,7 +127,7 @@ export class CustomPCF implements ComponentFramework.StandardControl<IInputs, IO
             this.updateStateProperties(context);
         }
         
-        this.renderUi();
+        this.renderUI();
     }
 
     /**
@@ -148,7 +148,7 @@ export class CustomPCF implements ComponentFramework.StandardControl<IInputs, IO
     /**
      * Renders UI display changes based entirely on current component states.
      */
-    private renderUi(): void {
+    private renderUI(): void {
         const structuralNameValue = this.name ?? "";
 
         // Stylize elements dynamically using context configuration parameters
@@ -182,7 +182,7 @@ export class CustomPCF implements ComponentFramework.StandardControl<IInputs, IO
 
         // Toggle visibility state and push re-render update
         this.isEditMode = !this.isEditMode;
-        this.renderUi();
+        this.renderUI();
     }
 
     /**
