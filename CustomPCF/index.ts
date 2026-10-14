@@ -32,16 +32,21 @@ export class CustomPCF implements ComponentFramework.StandardControl<IInputs, IO
     // private label: HTMLInputElement;
     // private labelContainer: HTMLDivElement;
 
-    // The PCF context object
+    // Framework-provided infrastructure
     private context: ComponentFramework.Context<IInputs>;
-    // The wrapper div element for the component
     private container: HTMLDivElement;
-    // The callback function to call whenever your code has made a change to a bound or output property
     private notifyOutputChanged: () => void;
-    // Flag to track if the component is in edit mode or not
-    private isEditMode: boolean;
-    // Tracking variable for the name property
-    private name: string | null;
+
+    // Component internal state
+    private isEditMode = false;
+    private name: string | null = null;
+    private accentColor = "#0078d4"; // Fallback color
+
+    // Persistent DOM element references to prevent querySelector leakage
+    private messageElement: HTMLSpanElement;
+    private inputElement: HTMLInputElement;
+    private actionButton: HTMLButtonElement;
+    private mainWrapper: HTMLDivElement;
 
     /**
      * Empty constructor.
@@ -84,60 +89,30 @@ export class CustomPCF implements ComponentFramework.StandardControl<IInputs, IO
         this.container.style.height = "720px";
         this.container.style.overflow = "hidden"; // Prevents unwanted scrollbars if needed
 
-        // Create the span element to hold the project name
-        const message = document.createElement("span");
-        message.innerText = `Project Name: ${this.isEditMode ? "" : context.parameters.Name.raw}`;
+        // Extract properties and cache initial state
+        this.updateStateProperties(context);
 
-        // Create the textbox to edit the name
-        const text = document.createElement("input");
-        text.type = "text";
-        text.style.display = this.isEditMode ? "block" : "none";
+        // Build and anchor DOM structure
+        this.mainWrapper = document.createElement("div");
+        this.mainWrapper.className = "pcf-navbar-container";
 
-        if (context.parameters.Name.raw) {
-            text.value = context.parameters.Name.raw;
-            // Wrap the two above elements in a div to box out the content
-            const messageContainer = document.createElement("div");
-            messageContainer.appendChild(message);
-            messageContainer.appendChild(text);
+        this.messageElement = document.createElement("span");
+        this.inputElement = document.createElement("input");
+        this.inputElement.type = "text";
 
-            // Create the button element to switch between edit and read modes
+        this.actionButton = document.createElement("button");
+        // Bind the handler explicitly so context is maintained
+        this.actionButton.addEventListener("click", this.handleButtonClick.bind(this));
 
-            const button = document.createElement("button");
-            button.textContent = this.isEditMode ? "Save" : "Edit";
-            button.addEventListener("click", () => { this.buttonClick(); });
+        // Assemble the UI tree
+        this.mainWrapper.appendChild(this.messageElement);
+        this.mainWrapper.appendChild(this.inputElement);
+        this.container.appendChild(this.mainWrapper);
+        this.container.appendChild(this.actionButton);
 
-            // Add the message container and button to the overall control container
-            this.container.appendChild(messageContainer);
-            this.container.appendChild(button);
-        }
+        // Synchronize DOM with the current state values
+        this.renderUi();
     }
-
-    public buttonClick() {
-        // Get our controls via DOM queries
-        const text = this.container.querySelector("input")!;
-        const message = this.container.querySelector("span")!;
-        const button = this.container.querySelector("button")!;
-
-        // If not in edit mode, copy the current name value to the textbox
-        if (!this.isEditMode) {
-            text.value = this.name ?? "";
-        }
-        else if (text.value != this.name) {
-            // if in edit mode, copy the textbox value to name and call the notify callback
-            this.name = text.value;
-            this.notifyOutputChanged();
-        }
-
-        // Flip the mode flag
-        this.isEditMode = !this.isEditMode;
-
-        // Set up the new output based on changes
-        message.innerText = `Project name ${this.isEditMode ? "" : this.name}`;
-        text.style.display = this.isEditMode ? "inline" : "none";
-        text.value = this.name ?? "";
-        button.textContent = this.isEditMode ? "Save" : "Edit";
-    }
-
 
     /**
      * Called when any value in the property bag has changed. This includes field values, data-sets, global values such as container height and width, offline status, control metadata values such as label, visible, etc.
@@ -145,10 +120,69 @@ export class CustomPCF implements ComponentFramework.StandardControl<IInputs, IO
      */
     public updateView(context: ComponentFramework.Context<IInputs>): void {
 
-        // Checks for updates coming in from outside
-        this.name = context.parameters.Name.raw;
-        const message = this.container.querySelector("span")!;
-        message.innerText = `Project Name: ${this.name}`;
+        this.context = context;
+        
+        // Only override state from outside if the user is not actively editing it locally
+        if (!this.isEditMode) {
+            this.updateStateProperties(context);
+        }
+        
+        this.renderUi();
+    }
+
+    /**
+     * Extracts and maps both incoming parameter fields and native context utilities.
+     */
+    private updateStateProperties(context: ComponentFramework.Context<IInputs>): void {
+        this.name = context.parameters.Name.raw || null;
+
+        // Safely extract property using record lookups instead of using 'any' bypasses
+        const rawParameters = context.parameters as unknown as Record<string, ComponentFramework.PropertyTypes.Property>;
+        if (rawParameters.accentColor && rawParameters.accentColor.raw) {
+            this.accentColor = rawParameters.accentColor.raw as string;
+        } else {
+            this.accentColor = "#0078d4";
+        }
+    }
+
+    /**
+     * Renders UI display changes based entirely on current component states.
+     */
+    private renderUi(): void {
+        const structuralNameValue = this.name ?? "";
+
+        // Stylize elements dynamically using context configuration parameters
+        this.mainWrapper.style.backgroundColor = this.accentColor;
+
+        if (this.isEditMode) {
+            this.messageElement.innerText = "Project Name: ";
+            this.inputElement.style.display = "inline-block";
+            this.inputElement.value = structuralNameValue;
+            this.actionButton.textContent = "Save";
+        } else {
+            this.messageElement.innerText = `Project Name: ${structuralNameValue}`;
+            this.inputElement.style.display = "none";
+            this.actionButton.textContent = "Edit";
+        }
+    }
+
+    /**
+     * Handles the button click event to toggle between edit and view modes, updating the name property and notifying the framework of output changes as necessary.
+     * Updates underlying data mutations and handles framework callbacks.
+     */
+    private handleButtonClick(): void {
+        if (this.isEditMode) {
+            const changedValue = this.inputElement.value.trim();
+            
+            if (changedValue !== this.name) {
+                this.name = changedValue || null;
+                this.notifyOutputChanged();
+            }
+        }
+
+        // Toggle visibility state and push re-render update
+        this.isEditMode = !this.isEditMode;
+        this.renderUi();
     }
 
     /**
@@ -167,7 +201,10 @@ export class CustomPCF implements ComponentFramework.StandardControl<IInputs, IO
      * i.e. cancelling any pending remote calls, removing listeners, etc.
      */
     public destroy() {
-        // Remove the event listener we created in init
-        this.container.querySelector("button")!.removeEventListener("click", this.buttonClick);
+        // Clean up event listeners using exact references to avoid DOM leaks
+        if (this.actionButton) {
+            this.actionButton.removeEventListener("click", this.handleButtonClick);
+        }
     }
+
 }
