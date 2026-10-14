@@ -10,7 +10,7 @@ This repository contains my practical implementation of the exercises from the M
 
 The project includes standard PCF configuration elements and a boilerplate custom control component:
 
-*   **`FirstControl/`** – The main development folder containing the manifest (`ControlManifest.Input.xml`), TypeScript logic, and styling for the primary custom control.
+*   **`CustomPCF/`** – The main development folder containing the manifest (`ControlManifest.Input.xml`), TypeScript logic, and styling for the custom control. The control displays and edits its bound `Name` value and supports an optional `accentColor` input for its background.
 *   **`ComponentFrameworkProject.pcfproj`** – The MSBuild project file used to package the custom components into a Power Apps solution zip file.
 *   **`pcfconfig.json`** – Configuration parameters governing the Power Apps Component Framework build steps.
 *   **`package.json` & `package-lock.json`** – Defines project dependencies, packaging configuration, and node scripts used during compilation.
@@ -36,13 +36,17 @@ npm install
 ### Development Scripts
 You can use standard Power Platform CLI (`pac`) or local Node workflows to test the project:
 
-*   **Start the Local Sandbox:** Run the local test harness to debug and observe `FirstControl` in a simulated browser environment without needing to publish to Dataverse:
+*   **Start the Local Sandbox:** Run the local test harness to debug and observe `CustomPCF` in a simulated browser environment without needing to publish to Dataverse:
     ```bash
     npm start
     ```
-*   **Build the Component:** Compile the TypeScript files and update the manifest schema settings:
+*   **Build the Component:** Compile the TypeScript control with the PCF tooling:
     ```bash
     npm run build
+    ```
+*   **Lint the Component:** Check the TypeScript code with the project's ESLint configuration:
+    ```bash
+    npm run lint
     ```
 
 ## 📦 Packaging and Deployment
@@ -54,4 +58,4 @@ To generate a deployable solution artifact that can be directly imported into yo
    ```bash
    msbuild /t:build
    ```
-3. Import the resulting solution `.zip` file found inside the `bin/Debug/` or `bin/Release/` outputs straight into your Power Platform environment solutions portal.
+3. Find the generated solution `.zip` file under `out/controls/` (the output path configured in `ComponentFrameworkProject.pcfproj`) and import it into your Power Platform environment through the solutions portal.
